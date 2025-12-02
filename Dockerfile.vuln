@@ -1,0 +1,28 @@
+#paste these into the kali terminal and it will create the vulnerable Docker file
+cat > Dockerfile <<'EOF'
+FROM ubuntu:22.04
+
+# Use reliable global mirror
+RUN sed -i 's|http://archive.ubuntu.com/ubuntu/|http://mirror.cogentco.com/pub/linux/ubuntu/|g' /etc/apt/sources.list && \
+    sed -i 's|http://security.ubuntu.com/ubuntu/|http://mirror.cogentco.com/pub/linux/ubuntu/|g' /etc/apt/sources.list
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Etc/UTC
+
+RUN apt-get update -y && \
+    apt-get install -y tzdata nginx php-fpm curl gnupg lsb-release ca-certificates
+
+# Allow explicit downgrade of libc (for lab)
+RUN apt-get update -y && \
+    apt-get install -y --allow-downgrades libc6-dev=2.35-0ubuntu3 libc-dev-bin=2.35-0ubuntu3 libc6=2.35-0ubuntu3 && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+COPY index.php /var/www/html/index.php
+COPY nginx.conf /etc/nginx/sites-enabled/default
+COPY start.sh /start.sh
+
+RUN chmod +x /start.sh
+
+EXPOSE 80
+CMD ["bash", "/start.sh"]
+EOF
